@@ -74,23 +74,26 @@ foreach ($Team in $Teams) {
             # Add the date and time of the post, the name of the submitter, and the text (HTML) to the variable
             $Html += "<hr>"
             $Html += "<p><b>件名:$($Message.Subject)</b></p>"
-            $Html += "<p><b>日時:$($Message.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"))</b> by <i>$($Message.From.User.DisplayName)</i></p>"
+            $Html += "<p><b>$($Message.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"))</b> by <i>$($Message.From.User.DisplayName)</i></p>"
             $Html += "$($Message.Body.Content)"
             $Message.Reactions | convertto-json
 
             # Process attachments
             # $Message.attachments is not Null
             if(-not [string]::IsNullOrEmpty($Message.attachments)) {
+                $Html += "<p><b>添付ファイル</b></p>"
                
                 foreach ($attachment in $Message.attachments) {
-                    $Html += "<p><b>添付ファイル:$($attachment.ContentUrl)</b></p>"
+                    $Html += "<p>$($attachment.ContentUrl)</p>"
                 }
             }
 
             # Process reactions
             if(-not [string]::IsNullOrEmpty($Message.Reactions)) {
+                $Html += "<p><b>リアクション</b></p>"
+                
                 foreach ($reaction in $Message.Reactions) {
-                    $Html += "<p><b>リアクション:$($reaction.ReactionType) by $($reaction.User.DisplayName)</b></p>"
+                    $Html += "<p>$($reaction.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff")) $($reaction.ReactionType) by $($reaction.User.DisplayName)</p>"
                 }
             }
 
@@ -125,16 +128,19 @@ foreach ($Team in $Teams) {
 
                 # Process attachments
                 if(-not [string]::IsNullOrEmpty($reply.attachments)) {
+                    $Html += "<p><b>添付ファイル</b></p>"
                     
                     foreach ($attachment in $reply.attachments) {
-                        $Html += "<p><b>添付ファイル:$($attachment.ContentUrl)</b></p>"
+                        $Html += "<p>$($attachment.ContentUrl)</p>"
                     }
                 }
 
                 # Process reactions
                 if(-not [string]::IsNullOrEmpty($reply.Reactions)) {
+                    $Html += "<p><b>リアクション</b></p>"
+                
                     foreach ($reaction in $reply.Reactions) {
-                        $Html += "<p><b>リアクション:$($reaction.ReactionType) by $($reaction.User.DisplayName)</b></p>"
+                        $Html += "<p>$($reaction.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff")) $($reaction.ReactionType) by $($reaction.User.DisplayName)</p>"
                     }
                 }
                 
