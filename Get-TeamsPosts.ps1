@@ -18,11 +18,27 @@
 #
 #####
 
-# Get user name from command line argument
-$UserName = $args[0]
+# パラメーターとしてUserName(UPN)を受け取る
+# 必要に応じてDebug, Verboseをつける
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory=$true)]
+    [string]$UserName
+)
+# メールアドレスが正しい形式かチェックする関数
+function Validate-UserName($UserName) {
+    return $UserName -match "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+}
 
-# If there is more than one argument, display usage and abort processing
-if ($args.Length -ne 1) {
+# メールアドレスが正しいかどうか判定する
+$isValid = Validate-UserName $UserName
+
+# デバッグ用に変数の中身を出力する
+Write-Verbose "UserName: $UserName"
+Write-Verbose "IsValid: $isValid"
+
+# If there is no UPN
+if([string]::IsNullOrEmpty($UserName)) {
     Write-Host "Execute with UPN." 
     Exit 1
 }
@@ -43,8 +59,8 @@ $Teams = Get-Team -User $UserName | Select-Object GroupId, DisplayName
 foreach ($Team in $Teams) {
 
     # Show team ID and name
-    Write-Host "Team Name: $($Team.DisplayName)"
-    Write-Host "Team ID: $($Team.GroupId)"
+    Write-Verbose "Team Name: $($Team.DisplayName)" -Verbose
+    Write-Verbose "Team ID: $($Team.GroupId)" -Verbose
 
     # Get IDs and names of all channels on the team
     $Channels = Get-TeamChannel -GroupId $Team.GroupId | Select-Object Id, DisplayName
@@ -53,8 +69,8 @@ foreach ($Team in $Teams) {
     foreach ($Channel in $Channels) {
 
         # Show channel ID and name
-        Write-Host "Channel Name: $($Channel.DisplayName)"
-        Write-Host "Channel ID: $($Channel.Id)"
+        Write-Verbose "Channel Name: $($Channel.DisplayName)" -Verbose
+        Write-Verbose "Channel ID: $($Channel.Id)" -Verbose
 
         # Create variables to output postings to a file in HTML format
         $Html = "<html><head><title>$($Team.DisplayName) - $($Channel.DisplayName)</title></head><body>"
@@ -76,13 +92,13 @@ foreach ($Team in $Teams) {
             $Html += "<p><b>件名:$($Message.Subject)</b></p>"
             $Html += "<p><b>$($Message.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"))</b> by <i>$($Message.From.User.DisplayName)</i></p>"
             $Html += "$($Message.Body.Content)"
-            $Message.Reactions | convertto-json
 
             # Process attachments
             # $Message.attachments is not Null
             if(-not [string]::IsNullOrEmpty($Message.attachments)) {
                 $Html += "<p><b>添付ファイル</b></p>"
-               
+                Write-Output $Message.attachments
+
                 foreach ($attachment in $Message.attachments) {
                     $Html += "<p>$($attachment.ContentUrl)</p>"
                 }
@@ -91,7 +107,8 @@ foreach ($Team in $Teams) {
             # Process reactions
             if(-not [string]::IsNullOrEmpty($Message.Reactions)) {
                 $Html += "<p><b>リアクション</b></p>"
-                
+                Write-Output $Message.Reactions
+
                 foreach ($reaction in $Message.Reactions) {
                     $Html += "<p>$($reaction.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff")) $($reaction.ReactionType) by $($reaction.User.DisplayName)</p>"
                 }
@@ -102,59 +119,61 @@ foreach ($Team in $Teams) {
 
             # Process replies
             # $replies is not Null)
-            $replies | convertto-Json
-            if([string]::IsNullOrEmpty($replies)) {
+        }
+        if([string]::IsNullOrEmpty($replies)) {
+            continue
+        }
+        
+        Write-Output $replies        
+        # Start Reply
+        $Html += "<div><p><b>返信</b></p>"
+        
+        # Process each reply content
+        foreach ($reply in $replies) {
+            if ($reply.messageType -ne "message") {
                 continue
             }
-
-            # Start Reply
-            $Html += "<div><p><b>返信</b></p>"
             
-            # Process each reply content
-            foreach ($reply in $replies) {
-                if ($reply.messageType -ne "message") {
-                    continue
-                }
-                $replyData = New-Object PSObject | Select-Object DateTime, From, Type, Content, Attachments
-                $replyData.DateTime = $reply.createdDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff")
-                $replyData.From = $reply.from.user.displayName
-                $replyData.Type = "Reply"
-                $replyData.Content = $reply.body.content
-                $reply.Reactions | convertto-json
+            $replyData = New-Object PSObject | Select-Object DateTime, From, Type, Content, Attachments
+            $replyData.DateTime = $reply.createdDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff")
+            $replyData.From = $reply.from.user.displayName
+            $replyData.Type = "Reply"
+            $replyData.Content = $reply.body.content
+            
+            # Add the date and time of the post, the name of the submitter, and the text (HTML) to the variable
+            $Html += "<p><b>$($replyData.DateTime)</b> by <i>$($replyData.From)</i></p>"
+            $Html += "$($replyData.Content)"
+            
+            # Process attachments
+            
+            if(-not [string]::IsNullOrEmpty($reply.attachments)) {
+                $Html += "<p><b>添付ファイル</b></p>"
+                Write-Output $reply.attachments
                 
-                # Add the date and time of the post, the name of the submitter, and the text (HTML) to the variable
-                $Html += "<p><b>$($replyData.DateTime)</b> by <i>$($replyData.From)</i></p>"
-                $Html += "$($replyData.Content)"
-
-                # Process attachments
-                if(-not [string]::IsNullOrEmpty($reply.attachments)) {
-                    $Html += "<p><b>添付ファイル</b></p>"
-                    
-                    foreach ($attachment in $reply.attachments) {
-                        $Html += "<p>$($attachment.ContentUrl)</p>"
-                    }
+                foreach ($attachment in $reply.attachments) {
+                    $Html += "<p>$($attachment.ContentUrl)</p>"
                 }
-
-                # Process reactions
-                if(-not [string]::IsNullOrEmpty($reply.Reactions)) {
-                    $Html += "<p><b>リアクション</b></p>"
-                
-                    foreach ($reaction in $reply.Reactions) {
-                        $Html += "<p>$($reaction.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff")) $($reaction.ReactionType) by $($reaction.User.DisplayName)</p>"
-                    }
-                }
-                
             }
             
-            # End of Reply
-            $Html += "</div>"
+            # Process reactions
+            
+            if(-not [string]::IsNullOrEmpty($reply.Reactions)) {
+                $Html += "<p><b>リアクション</b></p>"
+                Write-Output $reply.Reactions
+                
+                foreach ($reaction in $reply.Reactions) {
+                    $Html += "<p>$($reaction.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff")) $($reaction.ReactionType) by $($reaction.User.DisplayName)</p>"
+                }
+            }
         }
-        # Added end tag to variable for output to file in HTML format
-        $Html += "</body></html>"
-        
-        # Output to file in HTML format (file name is team_channel_name.html)
-        Out-File -FilePath "$($Team.DisplayName)_$($Channel.DisplayName).html" -InputObject $Html -Encoding UTF8
+        # End of Reply
+        $Html += "</div>"
     }
+    # Added end tag to variable for output to file in HTML format
+    $Html += "</body></html>"
+    
+    # Output to file in HTML format (file name is team_channel_name.html)
+    Out-File -FilePath "$($Team.DisplayName)_$($Channel.DisplayName).html" -InputObject $Html -Encoding UTF8
 }
 
 # Disconnect from Microsoft Graph API
