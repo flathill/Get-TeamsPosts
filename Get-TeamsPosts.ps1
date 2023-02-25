@@ -76,9 +76,10 @@ foreach ($Team in $Teams) {
             $Html += "<p><b>件名:$($Message.Subject)</b></p>"
             $Html += "<p><b>日時:$($Message.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"))</b> by <i>$($Message.From.User.DisplayName)</i></p>"
             $Html += "$($Message.Body.Content)"
-            $Message.attachments | convertto-json
+            $Message.Reactions | convertto-json
 
             # Process attachments
+            # $Message.attachments is not Null
             if(-not [string]::IsNullOrEmpty($Message.attachments)) {
                
                 foreach ($attachment in $Message.attachments) {
@@ -86,10 +87,19 @@ foreach ($Team in $Teams) {
                 }
             }
 
-            # Process replies
+            # Process reactions
+            if(-not [string]::IsNullOrEmpty($Message.Reactions)) {
+                foreach ($reaction in $Message.Reactions) {
+                    $Html += "<p><b>リアクション:$($reaction.ReactionType) by $($reaction.User.DisplayName)</b></p>"
+                }
+            }
+
+            # Get replies
             $replies = Get-MgTeamChannelMessageReply -TeamId $Team.GroupId -ChannelId $Channel.Id -ChatMessageId $Message.Id -All -PageSize 50
 
-            # Skip if no reply ($replies is Null)
+            # Process replies
+            # $replies is not Null)
+            $replies | convertto-Json
             if([string]::IsNullOrEmpty($replies)) {
                 continue
             }
@@ -107,17 +117,24 @@ foreach ($Team in $Teams) {
                 $replyData.From = $reply.from.user.displayName
                 $replyData.Type = "Reply"
                 $replyData.Content = $reply.body.content
-                $reply.attachments | convertto-json
+                $reply.Reactions | convertto-json
                 
                 # Add the date and time of the post, the name of the submitter, and the text (HTML) to the variable
                 $Html += "<p><b>$($replyData.DateTime)</b> by <i>$($replyData.From)</i></p>"
                 $Html += "$($replyData.Content)"
-                
+
                 # Process attachments
                 if(-not [string]::IsNullOrEmpty($reply.attachments)) {
                     
                     foreach ($attachment in $reply.attachments) {
                         $Html += "<p><b>添付ファイル:$($attachment.ContentUrl)</b></p>"
+                    }
+                }
+
+                # Process reactions
+                if(-not [string]::IsNullOrEmpty($reply.Reactions)) {
+                    foreach ($reaction in $reply.Reactions) {
+                        $Html += "<p><b>リアクション:$($reaction.ReactionType) by $($reaction.User.DisplayName)</b></p>"
                     }
                 }
                 
