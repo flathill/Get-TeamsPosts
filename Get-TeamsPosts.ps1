@@ -14,7 +14,7 @@
 #   Seiichirou Hiraoka <seiichirou.hiraoka@gmail.com>
 #     Initial Version: 2023/02/24
 #
-#   Usage: Get-TeamsPosts.ps1 UPN
+#   Usage: Get-TeamsPosts.ps1 -UserName UPN [-Verbose] [-Debug]
 #
 # Preparing the script to work
 #   Install-Module Microsoft.Graph.Authentication
