@@ -5,8 +5,7 @@
 # the user belongs are retrieved and output to an HTML file.
 # When executing the command, a pop-up will ask for authentication,
 # so authenticate with the Teams global administrator.
-# Please execute the command with PowerShell 7
-# because PowerShell 5 will cause an error.
+# It works with PowerShell 7.
 #
 # Code Based on: https://qiita.com/seilian/items/225b1fe012d502bd4172
 # CSS  Based on: https://nelog.jp/line-bolloon-css
@@ -16,6 +15,11 @@
 #     Initial Version: 2023/02/24
 #
 #   Usage: Get-TeamsPosts.ps1 UPN
+#
+# Preparing the script to work
+#   Install-Module Microsoft.Graph.Authentication
+#   Install-Module Microsoft.Graph.Teams
+#   Install-Module MicrosoftTeams
 #
 #####
 
