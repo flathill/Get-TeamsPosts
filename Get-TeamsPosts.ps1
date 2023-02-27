@@ -99,13 +99,18 @@ foreach ($Team in $Teams) {
 
         # Process each submission
         foreach ($Message in $Messages) {
-            
+
+            # Change timezone
+            [string]$CreatedDateTime = $Message.CreatedDateTime
+            $GMT = [System.DateTimeOffset](Get-Date $CreatedDateTime -format R)
+            $JST = $GMT.ToOffset([System.TimeSpan]::FromHours(9))
+
             # Add the date and time of the post, the name of the submitter, and the text (HTML) to the variable
             $Html += "<hr>"
             $Html += "<div class=""left_balloon"">"
             $Html += "<p>"
             $Html += "<b>件名:$($Message.Subject)</b><br>"
-            $Html += "$($Message.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff")) by <i>$($Message.From.User.DisplayName)</i><br>"
+            $Html += "$($JST)) by <i>$($Message.From.User.DisplayName)</i><br>"
             $Html += "</p>"
             $Html += "$($Message.Body.Content)"
 
@@ -131,7 +136,12 @@ foreach ($Team in $Teams) {
                 $Html += "<b>リアクション</b><br>"
 
                 foreach ($reaction in $Message.Reactions) {
-                    $Html += "$($reaction.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff")) $($reaction.ReactionType) by $($reaction.User.DisplayName)<br>"
+                    # Change timezone
+                    [string]$CreatedDateTime = $reaction.CreatedDateTime
+                    $GMT = [System.DateTimeOffset](Get-Date $CreatedDateTime -format R)
+                    $JST = $GMT.ToOffset([System.TimeSpan]::FromHours(9))
+
+                    $Html += "$($JST) $($reaction.ReactionType) by $($reaction.User.DisplayName)<br>"
                 }
                 
                 $Html += "</p>"
@@ -139,7 +149,7 @@ foreach ($Team in $Teams) {
 
             $Html += "</div>"
             $Html += "<br class=""clear_balloon""/>"
-            
+
             # Get replies
             $replies = Get-MgTeamChannelMessageReply -TeamId $Team.GroupId -ChannelId $Channel.Id -ChatMessageId $Message.Id -All -PageSize 50
             
@@ -164,9 +174,14 @@ foreach ($Team in $Teams) {
                 
                 $reply | ConvertTo-Json
                 $Html += "<div class=""right_balloon"">"
+                
+                # Change timezone
+                [string]$CreatedDateTime = $reply.CreatedDateTime
+                $GMT = [System.DateTimeOffset](Get-Date $CreatedDateTime -format R)
+                $JST = $GMT.ToOffset([System.TimeSpan]::FromHours(9))
 
                 # Add the date and time of the post, the name of the submitter, and the text (HTML) to the variable
-                $Html += "<p><b>$($reply.createdDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff"))</b> by <i>$($reply.From.User.DisplayName)</i></p>"
+                $Html += "<p><b>$($JST)</b> by <i>$($reply.From.User.DisplayName)</i></p>"
                 $Html += "$($reply.Body.Content)"
                 
                 # Process attachments
@@ -189,7 +204,12 @@ foreach ($Team in $Teams) {
                     $reply.Reactions | ConvertTo-Json
                     
                     foreach ($reaction in $reply.Reactions) {
-                        $Html += "$($reaction.CreatedDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff")) $($reaction.ReactionType) by $($reaction.User.DisplayName)<br>"
+                        # Change timezone
+                        [string]$CreatedDateTime = $reaction.CreatedDateTime
+                        $GMT = [System.DateTimeOffset](Get-Date $CreatedDateTime -format R)
+                        $JST = $GMT.ToOffset([System.TimeSpan]::FromHours(9))
+
+                        $Html += "$($JST) $($reaction.ReactionType) by $($reaction.User.DisplayName)<br>"
                     }
 
                     $Html += "</p>"
