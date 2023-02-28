@@ -35,6 +35,14 @@ function Validate-UserName($UserName) {
     return $UserName -match "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 }
 
+# Function to take the result of Get-Date and convert it to JST time zone
+function Change-Timezone($DateTime){
+    # Convert format by adding 9 hours JST to DateTime
+    $JST = (Get-Date $DateTime.AddHours(9) -format "yyyy/MM/dd HH:mm:ss")
+    
+    Write-Output $JST
+}
+
 # Determine if the email address is correct
 $isValid = Validate-UserName $UserName
 
@@ -101,9 +109,7 @@ foreach ($Team in $Teams) {
         foreach ($Message in $Messages) {
 
             # Change timezone
-            [string]$CreatedDateTime = $Message.CreatedDateTime
-            $GMT = [System.DateTimeOffset](Get-Date $CreatedDateTime -format R)
-            $JST = $GMT.ToOffset([System.TimeSpan]::FromHours(9))
+            $JST = Change-Timezone($Message.CreatedDateTime)
 
             # Add the date and time of the post, the name of the submitter, and the text (HTML) to the variable
             $Html += "<hr>"
@@ -137,9 +143,7 @@ foreach ($Team in $Teams) {
 
                 foreach ($reaction in $Message.Reactions) {
                     # Change timezone
-                    [string]$CreatedDateTime = $reaction.CreatedDateTime
-                    $GMT = [System.DateTimeOffset](Get-Date $CreatedDateTime -format R)
-                    $JST = $GMT.ToOffset([System.TimeSpan]::FromHours(9))
+                    $JST = Change-Timezone($reaction.CreatedDateTime)
 
                     $Html += "$($JST) $($reaction.ReactionType) by $($reaction.User.DisplayName)<br>"
                 }
@@ -176,9 +180,7 @@ foreach ($Team in $Teams) {
                 $Html += "<div class=""right_balloon"">"
                 
                 # Change timezone
-                [string]$CreatedDateTime = $reply.CreatedDateTime
-                $GMT = [System.DateTimeOffset](Get-Date $CreatedDateTime -format R)
-                $JST = $GMT.ToOffset([System.TimeSpan]::FromHours(9))
+                $JST = Change-Timezone($reply.CreatedDateTime)
 
                 # Add the date and time of the post, the name of the submitter, and the text (HTML) to the variable
                 $Html += "<p><b>$($JST)</b> by <i>$($reply.From.User.DisplayName)</i></p>"
@@ -205,9 +207,7 @@ foreach ($Team in $Teams) {
                     
                     foreach ($reaction in $reply.Reactions) {
                         # Change timezone
-                        [string]$CreatedDateTime = $reaction.CreatedDateTime
-                        $GMT = [System.DateTimeOffset](Get-Date $CreatedDateTime -format R)
-                        $JST = $GMT.ToOffset([System.TimeSpan]::FromHours(9))
+                        $JST = Change-Timezone($reaction.CreatedDateTime)
 
                         $Html += "$($JST) $($reaction.ReactionType) by $($reaction.User.DisplayName)<br>"
                     }
